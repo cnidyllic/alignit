@@ -45,18 +45,32 @@ def parse_sequences(file_path, file_type):
     try:
         sequences = {}
         with open(file_path, 'r') as file:
-            identifier, sequence = '', ''
+            identifier, sequence, quality = '', '', ''
             for line in file:
                 line = line.strip()
-                if line.startswith('>' if file_type == 'fasta' else '@'):
+                if file_type == 'fasta' and line.startswith('>'):
                     if identifier:
                         sequences[identifier] = sequence
                     identifier = line[1:]
                     sequence = ''
-                else:
-                    sequence += line
+                elif file_type == 'fastq':
+                    if line.startswith('@'):
+                        if identifier:
+                            sequences[identifier] = (sequence, quality)
+                        identifier = line[1:]
+                        sequence, quality = '', ''
+                    elif line.startswith('+'):
+                        # Next line should be quality scores, skip this line
+                        continue
+                    elif quality:
+                        quality += line
+                    else:
+                        sequence += line
             if identifier:
-                sequences[identifier] = sequence
+                if file_type == 'fasta':
+                    sequences[identifier] = sequence
+                else:
+                    sequences[identifier] = (sequence, quality)
         return sequences
     except Exception as e:
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
@@ -82,17 +96,18 @@ def main():
     
     args = parser.parse_args()
     references = parse_sequences(args.reference, 'fasta')
-    queries = {qid: (seq, qual) for qid, seq, qual in parse_sequences(args.input, 'fastq').items()}
+    queries = parse_sequences(args.input, 'fastq')  # This now returns a dict with (sequence, quality)
 
     print("@HD\tVN:1.6\tSO:unsorted")
     for ref_id in references:
         print(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}")
 
     with ThreadPoolExecutor() as executor:
-        futures = {executor.submit(align_references, queries, ref_id, ref_seq): ref_id for ref_id, ref_seq in references.items()}
+        futures = {executor.submit(align_references, queries, ref_id, references[ref_id]): ref_id for ref_id in references}
         for future in as_completed(futures):
             for result in future.result():
                 print(result)
 
 if __name__ == "__main__":
     main()
+
