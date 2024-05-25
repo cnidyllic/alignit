@@ -1,5 +1,5 @@
 # align_it (CSE185 Project Demo)
-This is a demonstration project for CSE 185. It is a Python-based tool designed for aligning reads to the Malaria reference genome. This tool is optimized for handling complex genomic sequences with high AT content and repetitive elements, addressing challenges that current alignment tools, optimized for short-read sequencing, may face.
+This is a demonstration project for CSE 185. It is a Python-based tool designed for aligning reads to the Malaria reference genome. This tool is optimized for handling complex genomic sequences with high AT content and repetitive elements specifically.
 # Installation Instructions
 ```
 git clone https://github.com/cnidyllic/alignit
