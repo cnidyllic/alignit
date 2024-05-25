@@ -6,7 +6,7 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 
 # Versioning
 VERSION = '1.0.0'
-version_path = os.path.join(base_dir, 'alignit', 'version.py')
+version_path = os.path.join(base_dir, 'align-it', 'version.py')
 with open(version_path, 'w') as version_file:
     version_content = "\n".join([
         "# THIS FILE IS GENERATED FROM SETUP.PY",
