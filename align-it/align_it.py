@@ -1,5 +1,6 @@
 import sys
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class align_it:
     def __init__(self, reference_seq, k=20):
