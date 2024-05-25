@@ -112,7 +112,7 @@ def main():
 
     for ref_id, ref_seq in reference_sequences.items():
         print(f"Aligning to reference: {ref_id}")
-        aligner = SimpleAligner(ref_seq)
+        aligner = aligh_it(ref_seq)
         for query_id, query_seq in queries.items():
             match_positions = aligner.search(query_seq)
             if match_positions:
