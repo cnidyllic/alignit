@@ -1,6 +1,6 @@
 import sys
 
-class SimpleAligner:
+class align_it:
     def __init__(self, reference_seq, k=20):
         self.reference_seq = reference_seq
         self.k = k
@@ -64,7 +64,7 @@ def main():
 
     for ref_id, ref_seq in references.items():
         print(f"Aligning to reference: {ref_id}")
-        aligner = SimpleAligner(ref_seq)
+        aligner = align_it(ref_seq)
         for query_id, query_seq in queries.items():
             match_positions = aligner.search(query_seq)
             if match_positions:
