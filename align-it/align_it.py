@@ -56,6 +56,47 @@ def parse_fasta(file_path):
         sys.stderr.write(f"ERROR: Failed to parse FASTA file {file_path}: {str(e)}\n")
         sys.exit(1)
 
+def parse_fastq(fastq_file):
+    """
+    Parses a FASTQ file and returns a list of tuples containing the read identifier,
+    sequence, and quality string.
+    
+    Parameters:
+        fastq_file (str): Path to the FASTQ file.
+    
+    Returns:
+        list of tuples: List containing tuples of (identifier, sequence, quality).
+    """
+    queries = []
+    try:
+        with open(fastq_file, 'r') as file:
+            while True:
+                identifier = file.readline().strip()
+                if not identifier:
+                    break  # End of file
+                if not identifier.startswith('@'):
+                    raise ValueError("Malformed FASTQ file: Expected '@' at the start of the identifier line.")
+                
+                sequence = file.readline().strip()
+                separator = file.readline().strip()
+                if not separator.startswith('+'):
+                    raise ValueError("Malformed FASTQ file: Expected '+' at the start of the separator line.")
+                
+                quality = file.readline().strip()
+                if len(sequence) != len(quality):
+                    raise ValueError("Malformed FASTQ file: Sequence and quality scores length mismatch.")
+                
+                queries.append((identifier[1:], sequence, quality))  # Strip '@' from the identifier
+
+    except IOError as e:
+        sys.stderr.write(f"ERROR: Unable to open or read the FASTQ file {fastq_file}: {str(e)}\n")
+        sys.exit(1)
+    except ValueError as e:
+        sys.stderr.write(f"ERROR: {str(e)}\n")
+        sys.exit(1)
+
+    return queries
+
 def main():
     parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
     parser.add_argument("-i", "--input", required=True, help="Input FASTQ file containing reads.")
