@@ -62,40 +62,37 @@ def parse_sequences(file_path, file_type):
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
 
-def align_reads(ref_seq, queries):
-    aligner = align_it(ref_seq)
-    results = {}
-    for query_id, query_seq in queries.items():
+def align_references(queries, reference_id, reference_seq):
+    aligner = align_it(reference_seq)
+    results = []
+    for query_id, query_info in queries.items():
+        query_seq, query_qual = query_info
         match_positions = aligner.search(query_seq)
         if match_positions:
-            results[query_id] = (True, match_positions)
+            for pos in match_positions:
+                results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{query_qual}")
         else:
-            results[query_id] = (False, [])
+            results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{query_qual}")
     return results
 
 def main():
     parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
     parser.add_argument("-i", "--input", required=True, help="Input FASTQ file containing reads.")
     parser.add_argument("-r", "--reference", required=True, help="Reference genome in FASTA format.")
+    
     args = parser.parse_args()
+    references = parse_sequences(args.reference, 'fasta')
+    queries = {qid: (seq, qual) for qid, seq, qual in parse_sequences(args.input, 'fastq').items()}
 
-    reference_sequences = parse_sequences(args.reference, 'fasta')
-    queries = parse_sequences(args.input, 'fastq')
-    total_reads = len(queries)
+    print("@HD\tVN:1.6\tSO:unsorted")
+    for ref_id in references:
+        print(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}")
 
-    results = {}
     with ThreadPoolExecutor() as executor:
-        future_to_ref = {executor.submit(align_reads, ref_seq, queries): ref_id for ref_id, ref_seq in reference_sequences.items()}
-        for future in as_completed(future_to_ref):
-            ref_id = future_to_ref[future]
-            results[ref_id] = future.result()
-
-    reads_aligned = sum(1 for res in results.values() for status, positions in res.items() if status)
-    if total_reads > 0:
-        alignment_percentage = (reads_aligned / total_reads) * 100
-        print(f"Percentage of reads aligned: {alignment_percentage:.2f}%")
-    else:
-        print("No reads to align.")
+        futures = {executor.submit(align_references, queries, ref_id, ref_seq): ref_id for ref_id, ref_seq in references.items()}
+        for future in as_completed(futures):
+            for result in future.result():
+                print(result)
 
 if __name__ == "__main__":
     main()
