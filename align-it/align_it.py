@@ -61,28 +61,35 @@ def parse_sequences(file_path, file_type):
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
 
+def align_reads(ref_seq, queries):
+    aligner = align_it(ref_seq)
+    results = {}
+    for query_id, query_seq in queries.items():
+        match_positions = aligner.search(query_seq)
+        if match_positions:
+            results[query_id] = (True, match_positions)
+        else:
+            results[query_id] = (False, [])
+    return results
+
 def main():
     parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
     parser.add_argument("-i", "--input", required=True, help="Input FASTQ file containing reads.")
     parser.add_argument("-r", "--reference", required=True, help="Reference genome in FASTA format.")
-    
     args = parser.parse_args()
 
-    references = parse_sequences(args.reference, 'fasta')
+    reference_sequences = parse_sequences(args.reference, 'fasta')
     queries = parse_sequences(args.input, 'fastq')
-
     total_reads = len(queries)
-    reads_aligned = 0
 
-    for ref_id, ref_seq in reference_sequences.items():
-        print(f"Aligning to reference: {ref_id}")
-        aligner = align_it(ref_seq)
-        for query_id, query_seq in queries.items():
-            match_positions = aligner.search(query_seq)
-            if match_positions:
-                print(f"{query_id} found in {ref_id} at positions: {match_positions}")
-                reads_aligned += 1
+    results = {}
+    with ThreadPoolExecutor() as executor:
+        future_to_ref = {executor.submit(align_reads, ref_seq, queries): ref_id for ref_id, ref_seq in reference_sequences.items()}
+        for future in as_completed(future_to_ref):
+            ref_id = future_to_ref[future]
+            results[ref_id] = future.result()
 
+    reads_aligned = sum(1 for res in results.values() for status, positions in res.items() if status)
     if total_reads > 0:
         alignment_percentage = (reads_aligned / total_reads) * 100
         print(f"Percentage of reads aligned: {alignment_percentage:.2f}%")
