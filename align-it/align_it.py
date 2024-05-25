@@ -66,15 +66,25 @@ def main():
     reference_sequences = parse_fasta(args.reference)
     queries = parse_fastq(args.input)
 
-    for ref_id, ref_seq in references.items():
+    total_reads = len(queries)
+    reads_aligned = 0
+
+    for ref_id, ref_seq in reference_sequences.items():
         print(f"Aligning to reference: {ref_id}")
-        aligner = align_it(ref_seq)
+        aligner = SimpleAligner(ref_seq)
         for query_id, query_seq in queries.items():
             match_positions = aligner.search(query_seq)
             if match_positions:
                 print(f"{query_id} found in {ref_id} at positions: {match_positions}")
+                reads_aligned += 1
             else:
                 print(f"{query_id} not found in {ref_id}.")
+
+    if total_reads > 0:
+        alignment_percentage = (reads_aligned / total_reads) * 100
+        print(f"Percentage of reads aligned: {alignment_percentage:.2f}%")
+    else:
+        print("No reads to align.")
 
 if __name__ == "__main__":
     main()
