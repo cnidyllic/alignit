@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 class align_it:
     def __init__(self, reference_seq, k=20):
@@ -56,11 +57,14 @@ def parse_fasta(file_path):
         sys.exit(1)
 
 def main():
-    reference_path = "alignit/example-files/test_reference.fa"
-    query_path = "alignit/example-files/test_queries.fastq"
+    parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
+    parser.add_argument("-i", "--input", required=True, help="Input FASTQ file containing reads.")
+    parser.add_argument("-r", "--reference", required=True, help="Reference genome in FASTA format.")
+    
+    args = parser.parse_args()
 
-    references = parse_fasta(reference_path)
-    queries = parse_fasta(query_path)  # Assuming queries are also in FASTA for simplicity
+    reference_sequences = parse_fasta(args.reference)
+    queries = parse_fastq(args.input)
 
     for ref_id, ref_seq in references.items():
         print(f"Aligning to reference: {ref_id}")
