@@ -52,7 +52,6 @@ def parse_sequences(file_path, file_type):
                     if line.startswith('>'):
                         if identifier:
                             sequences[identifier] = sequence
-                            print(f"DEBUG: Added sequence {identifier} with length {len(sequence)}")
                         identifier = line[1:]
                         sequence = ''
                     else:
@@ -68,15 +67,12 @@ def parse_sequences(file_path, file_type):
                         quality += line
                     if quality and len(quality) >= len(sequence):
                         sequences[identifier] = (sequence, quality)
-                        print(f"DEBUG: Added sequence {identifier} with length {len(sequence)} and quality length {len(quality)}")
                         identifier, sequence, quality = '', '', ''
             if identifier:
                 if file_type == 'fasta':
                     sequences[identifier] = sequence
-                    print(f"DEBUG: Added final sequence {identifier} with length {len(sequence)}")
                 else:
                     sequences[identifier] = (sequence, quality)
-                    print(f"DEBUG: Added final sequence {identifier} with length {len(seqeunce)} and quality length {len(quality)}")
         return sequences
     except Exception as e:
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
