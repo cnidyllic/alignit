@@ -48,34 +48,40 @@ def parse_sequences(file_path, file_type):
             identifier, sequence, quality = '', '', ''
             for line in file:
                 line = line.strip()
-                if file_type == 'fasta' and line.startswith('>'):
-                    if identifier:
-                        sequences[identifier] = sequence
-                    identifier = line[1:]
-                    sequence = ''
-                elif file_type == 'fastq':
-                    if line.startswith('@'):
+                if file_type == 'fasta':
+                    if line.startswith('>'):
                         if identifier:
-                            sequences[identifier] = (sequence, quality)
+                            sequences[identifier] = sequence
+                            print(f"DEBUG: Added sequence {identifier} with length {len(sequence)}")
                         identifier = line[1:]
-                        sequence, quality = '', ''
-                    elif line.startswith('+'):
-                        # Next line should be quality scores, skip this line
-                        continue
-                    elif quality:
-                        quality += line
+                        sequence = ''
                     else:
                         sequence += line
+                elif file_type == 'fastq':
+                    if line.startswith('@') and not identifier:
+                        identifier = line[1:]
+                    elif line.startswith('+') and identifier:
+                        continue
+                    elif not sequence and not quality:
+                        sequence += line
+                    elif sequence and not quality:
+                        quality += line
+                    if quality and len(quality) >= len(sequence):
+                        sequences[identifier] = (sequence, quality)
+                        print(f"DEBUG: Added sequence {identifier} with length {len(sequence)} and quality length {len(quality)}")
+                        identifier, sequence, quality = '', '', ''
             if identifier:
                 if file_type == 'fasta':
                     sequences[identifier] = sequence
+                    print(f"DEBUG: Added final sequence {identifier} with length {len(sequence)}")
                 else:
                     sequences[identifier] = (sequence, quality)
+                    print(f"DEBUG: Added final sequence {identifier} with length {len(seqeunce)} and quality length {len(quality)}")
         return sequences
     except Exception as e:
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
-
+        
 def align_references(queries, reference_id, reference_seq):
     aligner = align_it(reference_seq)
     results = []
