@@ -1,6 +1,13 @@
 # align_it (CSE185 Project Demo)
 This is a demonstration project for CSE 185. It is a Python-based tool designed for aligning reads to the Malaria reference genome. This tool is optimized for handling complex genomic sequences with high AT content and repetitive elements specifically.
+# Features
+- Dynamically adjusts k-mer size based on GC content
+- Builds a hash-based index for k-mers from the reference sequence
+- Aligns FASTQ reads to the reference genome and outputs results in SAM format
+- Multithreading support for faster processing
 # Installation Instructions
+```
+Clone the repository:
 ```
 git clone https://github.com/cnidyllic/alignit
 ```
@@ -11,7 +18,7 @@ cd alignit
 ```
 python setup.py install
 ```
-Note: if you do not have root access, you can rum the commands above with additional options to install locally: 
+Note: if you do not have root access, you can run the commands above with additional options to install locally: 
 ```
 python setup.py install –user
 ```
