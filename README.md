@@ -6,7 +6,6 @@ This is a demonstration project for CSE 185. It is a Python-based tool designed 
 - Aligns FASTQ reads to the reference genome and outputs results in SAM format
 - Multithreading support for faster processing
 # Installation Instructions
-```
 Clone the repository:
 ```
 git clone https://github.com/cnidyllic/alignit
