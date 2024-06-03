@@ -3,37 +3,47 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class align_it:
-    def __init__(self, reference_seq, k=20):
+    def __init__(self, reference_seq, k_override=None, significance_threshold=0.2):
         self.reference_seq = reference_seq
-        self.k = self.determine_kmer_size(reference_seq)
-        self.index = self.build_index()
+        self.significance_threshold = significance_threshold
+        if k_override is not None:
+            self.k = k_override
+        else:
+            self.k = 20
+        self.index = {}
         
-    def determine_kmer_size(self, sequence):
-        """ Dynamically adjust k-mer size based on GC content to optimize indexing. """
+    def adjust_kmer_size(self, sequence):
+        """ Adjusts k-mer size based on GC content unless overridden by command-line. """
+        if self.k is not None:
+            return self.k  # Return overridden k-mer size if set
         gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence)
         if gc_content < 0.4:
-            return max(20, len(sequence) // 100)  # Increase k-mer size for high AT-content
+            return max(20, len(sequence) // 100)
+        elif gc_content > 0.6:
+            return max(15, len(sequence) // 150)
         return 20
         
-    def build_index(self):
+    def build_index(self, sequence, k):
         """ Builds a hash-based index for k-mers from the reference sequence with optimized handling for AT-rich sequences. """
         index = {}
-        step = max(1, self.k // 4)  # Adjusted step for overlap, could be increased based on AT-content analysis
-        for i in range(0, len(self.reference_seq) - self.k + 1, step):
-            kmer = self.reference_seq[i:i+self.k]
-            if self.is_significant_kmer(kmer):  # Check if the k-mer is significant enough to be indexed
+        step = max(1, k // 4)  # Adjusted step for overlap, could be increased based on AT-content analysis
+        for i in range(0, len(sequence) - k + 1, step):
+            kmer = sequence[i:i+k]
+            if self.is_significant_kmer(kmer): 
                 index.setdefault(kmer, []).append(i)
         return index
 
     def is_significant_kmer(self, kmer):
         """ Determine if a k-mer is significant based on its GC content in high AT-context. """
-        return (kmer.count('G') + kmer.count('C')) / len(kmer) > 0.2  # Threshold for significance, can be adjusted
+        return (kmer.count('G') + kmer.count('C')) / len(kmer) > self.significance_threshold
 
     def search(self, query):
-        """ Searches for the query in the reference sequence using the hash-based index. """
+        """ Searches for the query in the reference sequence using a dynamic k-mer index. """
+        k = self.adjust_kmer_size(query)
+        self.index = self.build_index(self.reference_seq, k)
         matches = set()
-        for i in range(len(query) - self.k + 1):
-            kmer = query[i:i+self.k]
+        for i in range(len(query) - k + 1):
+            kmer = query[i:i+k]
             if kmer in self.index:
                 for pos in self.index[kmer]:
                     end_pos = pos + len(query)
@@ -79,7 +89,7 @@ def parse_sequences(file_path, file_type):
         sys.exit(1)
         
 def align_references(queries, reference_id, reference_seq):
-    aligner = align_it(reference_seq)
+    aligner = align_it(reference_seq, k_override, significance_threshold)
     results = []
     for query_id, query_info in queries.items():
         query_seq, query_qual = query_info
@@ -95,6 +105,8 @@ def main():
     parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
     parser.add_argument("-i", "--input", required=True, help="Input FASTQ file containing reads.")
     parser.add_argument("-r", "--reference", required=True, help="Reference genome in FASTA format.")
+    parser.add_argument("-k", "--kmer-size", type=int, help="Manually override the k-mer size for indexing and searching.")
+    parser.add_argument("-t", "--threshold", type=float, default=0.2, help="Significance threshold for determining significant k-mers based on GC-content.")
     
     args = parser.parse_args()
     references = parse_sequences(args.reference, 'fasta')
