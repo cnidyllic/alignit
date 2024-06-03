@@ -18,9 +18,9 @@ class align_it:
         return entropy
         
     def adjust_kmer_size(self, sequence):
-        """ Adjusts k-mer size based on GC content unless overridden by command-line. """
+        """ Adjusts k-mer size based on G-C content unless overridden by command-line. """
         if self.k is not None:
-            return self.k  # Return overridden k-mer size if set
+            return self.k 
         gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence)
         if gc_content < 0.4:
             return max(20, len(sequence) // 100)
@@ -31,7 +31,7 @@ class align_it:
     def build_index(self, sequence, k):
         """ Builds a hash-based index for k-mers from the reference sequence with optimized handling for AT-rich sequences. """
         index = {}
-        step = max(1, k // 4)  # Adjusted step for overlap, could be increased based on AT-content analysis
+        step = max(1, k // 4)  
         for i in range(0, len(sequence) - k + 1, step):
             kmer = sequence[i:i+k]
             if self.is_significant_kmer(kmer): 
@@ -125,8 +125,8 @@ def main():
     
     args = parser.parse_args()
     references = parse_sequences(args.reference, 'fasta')
-    queries = parse_sequences(args.input, 'fastq')  # This now returns a dict with (sequence, quality)
-    num_threads = args.num_threads  # Number of threads adjusted via command-line
+    queries = parse_sequences(args.input, 'fastq')  
+    num_threads = args.num_threads  
     queries_blocks = distribute_queries(queries, num_threads)
     
     print("@HD\tVN:1.6\tSO:unsorted")
