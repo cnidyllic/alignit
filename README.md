@@ -21,7 +21,7 @@ Note: if you do not have root access, you can run the commands above with additi
 ```
 python setup.py install –user
 ```
-If the install was successful, typing ```align_it –help``` should show a useful message. 
+If the install was successful, typing ```align_it –-help``` should show a useful message. 
 
 # Basic usage: 
 The basic usage of ```align_it``` is:
