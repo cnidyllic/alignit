@@ -1,16 +1,21 @@
 import sys
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from math import log2, ceil
 
 class align_it:
-    def __init__(self, reference_seq, k_override=None, significance_threshold=0.2):
+    def __init__(self, reference_seq, k_override=None, significance_threshold=0.2, entropy_threshold=1.5):
         self.reference_seq = reference_seq
         self.significance_threshold = significance_threshold
-        if k_override is not None:
-            self.k = k_override
-        else:
-            self.k = 20
-        self.index = {}
+        self.entropy_threshold = entropy_threshold
+        self.k = koverride or 20
+        self.index = self.build_index(self.reference_seq, self.k)
+
+    def calculate_entropy(self, kmer):
+        """ Calculates the Shannon entropy of the k-mer. """
+        freq = {x: kmer.count(x) / len(kmer) for x in set(kmer)}
+        entropy = -sum(p * log2(p) for p in freq.values() if p > 0)
+        return entropy
         
     def adjust_kmer_size(self, sequence):
         """ Adjusts k-mer size based on GC content unless overridden by command-line. """
@@ -34,8 +39,10 @@ class align_it:
         return index
 
     def is_significant_kmer(self, kmer):
-        """ Determine if a k-mer is significant based on its GC content in high AT-context. """
-        return (kmer.count('G') + kmer.count('C')) / len(kmer) > self.significance_threshold
+        """ Determine if a k-mer is significant based on its GC content and entropy. """
+        gc_content_significant = (kmer.count('G') + kmer.count('C')) / len(kmer) > self.significance_threshold
+        entropy_significant = self.calculate_entropy(kmer) > self.entropy_threshold
+        return gc_content_significant and entropy_significant
 
     def search(self, query):
         """ Searches for the query in the reference sequence using a dynamic k-mer index. """
@@ -88,18 +95,24 @@ def parse_sequences(file_path, file_type):
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
         
-def align_references(queries, reference_id, reference_seq):
-    aligner = align_it(reference_seq, k_override, significance_threshold)
+def align_block(queries_block, references, k_override, significance_threshold, entropy_threshold):
     results = []
-    for query_id, query_info in queries.items():
-        query_seq, query_qual = query_info
-        match_positions = aligner.search(query_seq)
-        if match_positions:
-            for pos in match_positions:
-                results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{query_qual}")
-        else:
-            results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{query_qual}")
+    for reference_id, reference_seq in references.items():
+        aligner = align_it(reference_seq, k_override, significance_threshold, entropy_threshold)
+        for query_id, query_info in queries_block.items():
+            query_seq, query_qual = query_info
+            match_positions = aligner.search(query_seq)
+            if match_positions:
+                for pos in match_positions:
+                    results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{query_qual}")
+            else:
+                results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{query_qual}")
     return results
+
+def distribute_queries(queries, num_blocks):
+    """ Distribute queries into blocks. """
+    block_size = ceil(len(queries) / num_blocks)
+    return [dict(list(queries.items())[i * block_size:(i + 1) * block_size]) for i in range(num_blocks)]
 
 def main():
     parser = argparse.ArgumentParser(description="Align FASTQ reads against a reference genome.")
@@ -107,17 +120,21 @@ def main():
     parser.add_argument("-r", "--reference", required=True, help="Reference genome in FASTA format.")
     parser.add_argument("-k", "--kmer-size", type=int, help="Manually override the k-mer size for indexing and searching.")
     parser.add_argument("-t", "--threshold", type=float, default=0.2, help="Significance threshold for determining significant k-mers based on GC-content.")
+    parser.add_argument("-e", "--entropy-threshold", type=float, default=1.5, help="Entropy threshold for determining significant k-mers.")
+    parser.add_argument("-n", "--num-threads", type=int, default=4, help="Number of threads to use for processing.")
     
     args = parser.parse_args()
     references = parse_sequences(args.reference, 'fasta')
     queries = parse_sequences(args.input, 'fastq')  # This now returns a dict with (sequence, quality)
-
+    num_threads = args.num_threads  # Number of threads adjusted via command-line
+    queries_blocks = distribute_queries(queries, num_threads)
+    
     print("@HD\tVN:1.6\tSO:unsorted")
     for ref_id in references:
         print(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}")
 
-    with ThreadPoolExecutor() as executor:
-        futures = {executor.submit(align_references, queries, ref_id, references[ref_id]): ref_id for ref_id in references}
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [executor.submit(align_block, block, references, args.kmer_size, args.threshold, args.entropy_threshold) for block in queries_blocks]
         for future in as_completed(futures):
             for result in future.result():
                 print(result)
