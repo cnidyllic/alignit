@@ -34,6 +34,10 @@ Complete usage instructions:
 # align_it options
 The required inputs to ```align_it``` is a FASTQ file containing the reads and the reference genome fasta file for alignment. Users may additionally specify the options below:
 
+# Benchmarking:
+Install necessary tools first:
+```pip install matplotlib numpy memory_profiler pandas```
+
 # File format
 The output file format is the same as the bwa mem method, a SAM file, printed to the standard output: See: python align-it/align_it.py -i example-files/test_queries.fastq -r example-files/test_reference.fa 
 
