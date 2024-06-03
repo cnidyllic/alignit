@@ -2,20 +2,24 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from memory_profiler import memory_usage
-from src.main import main as align_main
+from align-it import align_it
 from metrics import calculate_accuracy
 
 def run_benchmark(input_path, reference_path):
     # Measure runtime and memory usage
+    # Read sequences
+    queries = parse_sequences(query_path, 'fastq')
+    reference = parse_sequences(reference_path, 'fasta').values()[0]  
+
+    # Initialize aligner
+    aligner = align_it(reference)
+    
     start_time = time.time()
     memory_usage_profile = memory_usage((align_main, (input_path, reference_path)), interval=0.1, include_children=True)
     end_time = time.time()
 
     runtime = end_time - start_time
     peak_memory = max(memory_usage_profile)
-
-    # Generate output path based on input for automated accuracy measurement
-    output_path = input_path.replace('.fastq', '_aligned.sam')
 
     # Calculate accuracy
     accuracy = calculate_accuracy(output_path, 'expected_output_path')  # Placeholder
