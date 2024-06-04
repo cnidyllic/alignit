@@ -43,7 +43,6 @@ class align_it:
 
     # Signifance of kmer based on GC content and entropy
     def is_significant_kmer(self, kmer):
-        """ Determine if a k-mer is significant based on its GC content and entropy. """
         gc_content_significant = (kmer.count('G') + kmer.count('C')) / len(kmer) > self.significance_threshold
         entropy_significant = self.calculate_entropy(kmer) > self.entropy_threshold
         return gc_content_significant and entropy_significant
