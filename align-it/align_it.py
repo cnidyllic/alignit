@@ -115,7 +115,6 @@ def summarize_quality(quality_string):
 # align a block of reads to a set of reference sequences
 def align_block(queries_block, references, k_override, significance_threshold, entropy_threshold):
     results = []
-    aligned_count = 0  # To count the number of successfully aligned reads
     # iterate over each query and reference to align
     for reference_id, reference_seq in references.items():
         aligner = align_it(reference_seq, k_override, significance_threshold, entropy_threshold)
@@ -124,12 +123,11 @@ def align_block(queries_block, references, k_override, significance_threshold, e
             match_positions = aligner.search(query_seq)
             quality_summary = summarize_quality(query_qual)
             if match_positions:
-                aligned_count += 1
                 for pos in match_positions:
                     results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{quality_summary}")
             else:
                 results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{quality_summary}")
-    return results, aligned_count
+    return results
 
 # distribute queries into block for processing (threading)
 def distribute_queries(queries, num_blocks):
@@ -157,8 +155,6 @@ def main():
     queries = parse_sequences(args.input, 'fastq') # parse raw reads
     num_threads = args.num_threads # number of threads for parallel processing
     queries_blocks = distribute_queries(queries, num_threads) # distribute reads into blocks
-    total_aligned = 0
-    total_reads = sum(len(block) for block in queries_blocks)
 
     output_file = open("output.sam", "w")
     output_file.write("@HD\tVN:1.6\tSO:unsorted\n")
@@ -168,8 +164,7 @@ def main():
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [executor.submit(align_block, block, references, args.kmer_size, args.threshold, args.entropy_threshold) for block in queries_blocks]
         for future in as_completed(futures):
-            results, aligned_count = future.result()  # Correct usage of .result()
-            total_aligned += aligned_count
+            results = future.result()  # Correct usage of .result()
             for result in results:
                 output_file.write(result + "\n")
 
@@ -183,7 +178,6 @@ def main():
 
     print(f"Runtime: {runtime:.2f} seconds")
     print(f"Peak Memory Usage: {peak_memory_usage:.2f} MiB")
-    print(f"Total Reads: {total_reads}, Reads Aligned: {total_aligned}")
 
 if __name__ == "__main__":
     main() # if python script is executed directly
