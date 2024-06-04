@@ -21,12 +21,12 @@ Note: if you do not have root access, you can run the commands above with additi
 ```
 python setup.py install –-user
 ```
-If the install was successful, typing ```alignit/align_it –-help``` should show a useful message. 
+If the install was successful, typing ```python align-it/align_it.py --help``` should show a useful message. 
 
 # Basic usage: 
 The basic usage of ```align_it``` is:
 ```
-python align_it.py -i <input_FASTQ_file> -r <reference_genome>
+python align-it/align_it.py -i <input_FASTQ_file> -r <reference_genome>
 ```
 To run ```align_it``` on a small test example:
 Complete usage instructions: 
