@@ -2,6 +2,10 @@ import sys
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import log2, ceil
+import time
+from memory_profiler import memory_usage
+
+import os
 
 # Performs alignment of sequences based on kmer
 class align_it:
