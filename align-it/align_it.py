@@ -100,6 +100,14 @@ def parse_sequences(file_path, file_type):
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
 
+def quality_string_to_scores(quality_string):
+    return [ord(char) - 33 for char in quality_string]
+
+def summarize_quality(quality_string):
+    scores = [ord(char) - 33 for char in quality_string]
+    average_score = sum(scores) / len(scores)
+    return f"Average Quality: {average_score:.2f}"
+    
 # align a block of reads to a set of reference sequences
 def align_block(queries_block, references, k_override, significance_threshold, entropy_threshold):
     results = []
@@ -109,11 +117,12 @@ def align_block(queries_block, references, k_override, significance_threshold, e
         for query_id, query_info in queries_block.items():
             query_seq, query_qual = query_info
             match_positions = aligner.search(query_seq)
+            quality_summary = summarize_quality(query_qual)
             if match_positions:
                 for pos in match_positions:
-                    results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{query_qual}")
+                    results.append(f"{query_id}\t0\t{reference_id}\t{pos+1}\t255\t{len(query_seq)}M\t*\t0\t0\t{query_seq}\t{quality_summary}")
             else:
-                results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{query_qual}")
+                results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{quality_summary}")
     return results
 
 # distribute queries into block for processing (threading)
@@ -132,22 +141,38 @@ def main():
     parser.add_argument("-e", "--entropy-threshold", type=float, default=1.5, help="Entropy threshold for determining significant k-mers.")
     parser.add_argument("-n", "--num-threads", type=int, default=4, help="Number of threads to use for processing, or number of logical cores.")
     
-    args = parser.parse_args() # parse command line arguments
+    args = parser.parse_args() # parse command line arguments    
+    
+    # Start measuring time and memory
+    start_time = time.time()
+    mem_usage_before = memory_usage(max_usage=True)
+
     references = parse_sequences(args.reference, 'fasta') # parse reference genome
     queries = parse_sequences(args.input, 'fastq') # parse raw reads
     num_threads = args.num_threads # number of threads for parallel processing
     queries_blocks = distribute_queries(queries, num_threads) # distribute reads into blocks
-    
-    print("@HD\tVN:1.6\tSO:unsorted") 
-    for ref_id in references:
-        print(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}")
 
-    # Management of parallel processing
+    output_file = open("output.sam", "w")
+    output_file.write("@HD\tVN:1.6\tSO:unsorted\n")
+    for ref_id in references:
+        output_file.write(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}\n")
+
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [executor.submit(align_block, block, references, args.kmer_size, args.threshold, args.entropy_threshold) for block in queries_blocks]
         for future in as_completed(futures):
             for result in future.result():
-                print(result) # print each alignment result (in SAM file format)
+                output_file.write(result + "\n")
+
+    output_file.close()
+
+    # Calculate and print execution time and memory usage
+    end_time = time.time()
+    runtime = end_time - start_time
+    mem_usage_after = memory_usage(max_usage=True)
+    peak_memory_usage = mem_usage_after - mem_usage_before
+
+    print(f"Runtime: {runtime:.2f} seconds")
+    print(f"Peak Memory Usage: {peak_memory_usage:.2f} MiB")
 
 if __name__ == "__main__":
     main() # if python script is executed directly
