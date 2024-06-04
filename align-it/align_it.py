@@ -130,7 +130,7 @@ def main():
     parser.add_argument("-k", "--kmer-size", type=int, help="Manually override the k-mer size for indexing and searching.")
     parser.add_argument("-t", "--threshold", type=float, default=0.2, help="Significance threshold for determining significant k-mers based on GC-content.")
     parser.add_argument("-e", "--entropy-threshold", type=float, default=1.5, help="Entropy threshold for determining significant k-mers.")
-    parser.add_argument("-n", "--num-threads", type=int, default=4, help="Number of threads to use for processing.")
+    parser.add_argument("-n", "--num-threads", type=int, default=4, help="Number of threads to use for processing, or number of logical cores.")
     
     args = parser.parse_args() # parse command line arguments
     references = parse_sequences(args.reference, 'fasta') # parse reference genome
