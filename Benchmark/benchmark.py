@@ -15,7 +15,7 @@ def run_benchmark(input_path, reference_path):
     aligner = align_it(reference)
     
     start_time = time.time()
-    memory_usage_profile = memory_usage((align_main, (input_path, reference_path)), interval=0.1, include_children=True)
+    memory_usage_profile = memory_usage((align_it, (input_path, reference_path)), interval=0.1, include_children=True)
     end_time = time.time()
 
     runtime = end_time - start_time
@@ -56,8 +56,8 @@ def plot_results(times, memories, accuracies):
     plt.show()
 
 def main():
-    input_paths = ["data/query_sequences/sample1.fastq", "data/query_sequences/sample2.fastq"]
-    reference_path = "data/reference_genomes/sample.fasta"
+    input_paths = ["SRR006911.fastq"]
+    reference_path = "GC.fasta"
     times, memories, accuracies = [], [], []
 
     for input_path in input_paths:
