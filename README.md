@@ -19,7 +19,7 @@ python setup.py install
 ```
 Note: if you do not have root access, you can run the commands above with additional options to install locally: 
 ```
-python setup.py install –user
+python setup.py install –-user
 ```
 If the install was successful, typing ```align_it –-help``` should show a useful message. 
 
