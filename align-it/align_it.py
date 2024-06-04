@@ -184,7 +184,6 @@ def main():
     print(f"Runtime: {runtime:.2f} seconds")
     print(f"Peak Memory Usage: {peak_memory_usage:.2f} MiB")
     print(f"Total Reads: {total_reads}, Reads Aligned: {total_aligned}")
-    print(f"Alignment Success Rate: {alignment_rate:.2%}")
 
 if __name__ == "__main__":
     main() # if python script is executed directly
