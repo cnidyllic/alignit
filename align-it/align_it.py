@@ -167,7 +167,8 @@ def main():
 
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [executor.submit(align_block, block, references, args.kmer_size, args.threshold, args.entropy_threshold) for block in queries_blocks]
-        results, aligned_count = future.result()
+        for future in as_completed(futures):
+        results, aligned_count = future.result()  # Correct usage of .result()
         total_aligned += aligned_count
         for result in results:
             output_file.write(result + "\n")
