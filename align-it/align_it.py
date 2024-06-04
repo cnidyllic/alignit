@@ -10,7 +10,7 @@ class align_it:
         self.reference_seq = reference_seq # store the reference sequence
         self.significance_threshold = significance_threshold
         self.entropy_threshold = entropy_threshold 
-        self.k = koverride or 20 # kmer size, default to 20 unless overridden in option
+        self.k = k_override or 20 # kmer size, default to 20 unless overridden in option
         self.index = self.build_index(self.reference_seq, self.k) # builds an index of kmers from the reference
 
     # Calculate Shannon entropy for a kmer
