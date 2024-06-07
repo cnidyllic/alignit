@@ -29,14 +29,23 @@ The basic usage of ```align_it``` is:
 python align-it/align_it.py -i <input_FASTQ_file> -r <reference_genome>
 ```
 To run ```align_it``` on a small test example:
+```
+python align-it/align_it.py -i example-files/test_queries.fastq -r example-files/test_reference.fa 
+```
 Complete usage instructions: 
 
 # align_it options
 The required inputs to ```align_it``` is a FASTQ file containing the reads and the reference genome fasta file for alignment. Users may additionally specify the options below:
+-i, --input, required, "Input FASTQ file containing reads."
+-r, --reference, required, "Reference genome in FASTA format."
+-k, --kmer-size, type=int, "Manually override the k-mer size for indexing and searching."
+-t, --threshold, type=float, default=0.2, "Significance threshold for determining significant k-mers based on GC-content."
+-e, --entropy-threshold, type=float, default=1.5, "Entropy threshold for determining significant k-mers."
+-n, --num-threads, type=int, default=4, "Number of threads to use for processing, or number of logical cores."
 
 # Benchmarking:
 Install necessary tools first:
-```pip install matplotlib numpy memory_profiler pandas```
+```pip install memory_profiler```
 
 # File format
 The output file format is the same as the bwa mem method, a SAM file, printed to the standard output: See: python align-it/align_it.py -i example-files/test_queries.fastq -r example-files/test_reference.fa 
