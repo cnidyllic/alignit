@@ -60,7 +60,7 @@ python align-it/align_it.py -i Benchmark/read-seq.fastq -r Benchmark/ref-sequenc
 As we are still experimenting with the best options to use, feel free to adjust the argument using the options listed previously.
 
 # File format
-The output file format is the same as the `bwa-mem` method, a SAM file, printed to a file named `output.sam`: See output of: `python align-it/align_it.py -i example-files/test_queries.fastq -r example-files/test_reference.fa` 
+The output file format is the similar to that of the `bwa-mem` method, a SAM file, except with decrypted average quality scores, printed to a file named `output.sam`: See output of: `python align-it/align_it.py -i example-files/test_queries.fastq -r example-files/test_reference.fa` 
 
 # Citations
 This project references the following works:
