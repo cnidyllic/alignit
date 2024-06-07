@@ -1,7 +1,7 @@
 # align_it (CSE185 Project Demo)
-This is a demonstration project for CSE 185. It is a Python-based tool designed for aligning reads to the Malaria reference genome. This tool is optimized for handling complex genomic sequences with high AT content and repetitive elements specifically.
+This is a demonstration project for CSE 185. It is a Python-based tool designed for aligning reads to the Influenza A reference genome. This tool is optimized for handling complex genomic sequences with high AT/low GC content and repetitive elements specifically.
 # Features
-- Dynamically adjusts k-mer size based on GC content
+- Dynamically adjusts k-mer size based on GC content and entropy
 - Builds a hash-based index for k-mers from the reference sequence
 - Aligns FASTQ reads to the reference genome and outputs results in SAM format
 - Multithreading support for faster processing
