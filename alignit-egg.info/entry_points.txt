@@ -1,0 +1,3 @@
+[console_scripts]
+alignit = alignit.main:main
+

@@ -1,0 +1,7 @@
+README.md
+setup.py
+alignit.egg-info/PKG-INFO
+alignit.egg-info/SOURCES.txt
+alignit.egg-info/dependency_links.txt
+alignit.egg-info/entry_points.txt
+alignit.egg-info/top_level.txt
