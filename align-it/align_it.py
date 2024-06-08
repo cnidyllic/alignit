@@ -9,25 +9,26 @@ from memory_profiler import memory_usage
 
 # Performs alignment of sequences based on kmer
 class align_it:
-    # Initialize an instance of the align_it 
+    # Constructor: Initializes the alignment tool with reference sequence and parameters.
     def __init__(self, reference_seq, k_override=None, significance_threshold=0.4, entropy_threshold=1.5):
-        self.reference_seq = reference_seq # store the reference sequence
-        self.significance_threshold = significance_threshold
+        self.reference_seq = reference_seq 
+        self.significance_threshold = significance_threshold 
         self.entropy_threshold = entropy_threshold 
         self.k = k_override or 20 # kmer size, default to 20 unless overridden in option
         self.index = self.build_index(self.reference_seq, self.k) # builds an index of kmers from the reference
 
-    # Calculate Shannon entropy for a kmer
+     # Calculates the Shannon entropy of a k-mer to evaluate its complexity.
     def calculate_entropy(self, kmer):
         freq = {x: kmer.count(x) / len(kmer) for x in set(kmer)} # calculate freq of each base in the kmer
         entropy = -sum(p * log2(p) for p in freq.values() if p > 0) # computes shannon entropy
         return entropy
 
-    # adjusts kmer size based on GC content
+    # Adjusts kmer size based on GC content
     def adjust_kmer_size(self, sequence):
         if self.k is not None:
-            return self.k 
+            return self.k # Returns overridden k-mer size if set.
         gc_content = (sequence.count('G') + sequence.count('C')) / len(sequence) # calculate GC content
+        # Adjusts k-mer size based on GC content thresholds.
         if gc_content < 0.4:
             return max(15, len(sequence) // 200)
         elif gc_content > 0.6:
@@ -37,12 +38,12 @@ class align_it:
     # Hash-based index for kmers from the reference sequence
     def build_index(self, sequence, k):
         index = {}
-        step = max(1, k // 4) # determine the step size for sliding the kmer to reduce overlaps in AT-rich seq
+        step = max(1, k // 4) # Step size for reducing overlaps in AT-rich sequences.
         # Iterate over reference sequnce to create kmers and stores positions in index
         for i in range(0, len(sequence) - k + 1, step):
             kmer = sequence[i:i+k]
             if self.is_significant_kmer(kmer): 
-                index.setdefault(kmer, []).append(i)
+                index.setdefault(kmer, []).append(i) # Adds significant k-mers to the index.
         return index
 
     # Signifance of kmer based on GC content and entropy
@@ -69,50 +70,52 @@ class align_it:
 # Parsing from a correctly formatted file, FASTA or FASTQ only
 def parse_sequences(file_path, file_type):
     try:
-        sequences = {}
+        sequences = {} # Initialize an empty dictionary to store sequence data.
         with open(file_path, 'r') as file:
             identifier, sequence, quality = '', '', ''
-            for line in file:
-                line = line.strip()
+            for line in file: # Iterate over each line in the file.
+                line = line.strip() # Strip whitespace from the beginning and end of the line.
                 if file_type == 'fasta':
                     if line.startswith('>'):
-                        if identifier:
-                            sequences[identifier] = sequence
-                        identifier = line[1:]
-                        sequence = ''
-                    else:
+                        if identifier: # If there's a current identifier, store the previous sequence.
+                            sequences[identifier] = sequence 
+                        identifier = line[1:] # Set the new identifier, removing the '>'.
+                        sequence = '' # Reset sequence for the new entry.
+                    else: # If it's not a header, it's part of the sequence.
                         sequence += line
                 elif file_type == 'fastq':
                     if line.startswith('@') and not identifier:
-                        identifier = line[1:]
+                        identifier = line[1:] # Set the new identifier, removing the '@'.
                     elif line.startswith('+') and identifier:
                         continue
                     elif not sequence and not quality:
-                        sequence += line
+                        sequence += line # This line must be sequence data, add it.
                     elif sequence and not quality:
-                        quality += line
+                        quality += line # This line must be quality scores, add it.
                     if quality and len(quality) >= len(sequence):
                         sequences[identifier] = (sequence, quality)
-                        identifier, sequence, quality = '', '', ''
+                        identifier, sequence, quality = '', '', '' # Reset for the next record.
             if identifier:
                 if file_type == 'fasta':
-                    sequences[identifier] = sequence
-                else:
-                    sequences[identifier] = (sequence, quality)
-        return sequences
+                    sequences[identifier] = sequence # Store the last read sequence.
+                else: # If it's FASTQ.
+                    sequences[identifier] = (sequence, quality)  # Store the last read sequence and quality.
+        return sequences # Return the dictionary containing all sequences.
     except Exception as e:
         sys.stderr.write(f"ERROR: Failed to parse {file_type.upper()} file {file_path}: {str(e)}\n")
         sys.exit(1)
 
+# Converts quality string to numerical scores.
 def quality_string_to_scores(quality_string):
-    return [ord(char) - 33 for char in quality_string]
+    return [ord(char) - 33 for char in quality_string] 
 
+# Calculates and returns the average quality score.
 def summarize_quality(quality_string):
     scores = [ord(char) - 33 for char in quality_string]
     average_score = sum(scores) / len(scores)
     return f"Average Quality: {average_score:.2f}"
     
-# align a block of reads to a set of reference sequences
+# Align a block of reads to a set of reference sequences using multi-threading.
 def align_block(queries_block, references, k_override, significance_threshold, entropy_threshold):
     results = []
     aligned_count = 0  # To count the number of successfully aligned reads
@@ -131,7 +134,7 @@ def align_block(queries_block, references, k_override, significance_threshold, e
                 results.append(f"{query_id}\t4\t*\t0\t0\t*\t*\t0\t0\t{query_seq}\t{quality_summary}")
     return results, aligned_count
 
-# distribute queries into block for processing (threading)
+# Distribute queries into block for processing (threading)
 def distribute_queries(queries, num_blocks):
     block_size = ceil(len(queries) / num_blocks) # calculate size of each block (evenly)
     # split the reads into the specified number of blocks
@@ -149,14 +152,15 @@ def main():
     
     args = parser.parse_args() # parse command line arguments    
     
-    # Start measuring time and memory
+    # Start measuring time and memory for parsing reference sequences.
     start_time_parsing = time.time()
     mem_usage_before = memory_usage(max_usage=True)
 
-    references = parse_sequences(args.reference, 'fasta') # parse reference genome
+    references = parse_sequences(args.reference, 'fasta') # Parse reference genome
     parsing_duration = time.time() - start_time_parsing
     print(f"Parsing Reference Duration: {parsing_duration:.2f} seconds")
     
+    # Start measuring time for parsing query sequences.
     start_time_query_parsing = time.time()
     queries = parse_sequences(args.input, 'fastq') # parse raw reads
     query_parsing_duration = time.time() - start_time_query_parsing
@@ -169,20 +173,34 @@ def main():
     total_aligned = 0
     total_reads = sum(len(block) for block in queries_blocks)
 
-    output_file = open("output.sam", "w")
+    # Open output file for writing alignments.
+    output_file = open("output.sam", "w") 
     output_file.write("@HD\tVN:1.6\tSO:unsorted\n")
     for ref_id in references:
         output_file.write(f"@SQ\tSN:{ref_id}\tLN:{len(references[ref_id])}\n")
 
+    # Create an instance of ThreadPoolExecutor as 'executor'
+    # 'max_workers=num_threads' specifies the number of threads to use in the pool
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
+         # List comprehension to create future tasks:
+        # 'executor.submit' schedules the 'align_block' function to be executed by the pool
+        # Each 'block' of queries and the reference genome data are passed as arguments
+        # This allows each thread in the pool to process part of the data independently
         futures = [executor.submit(align_block, block, references, args.kmer_size, args.threshold, args.entropy_threshold) for block in queries_blocks]
+        
+        # Iterate over the futures as they complete (as_completed(futures)):
+        # This ensures that processing proceeds as threads finish, regardless of order
         for future in as_completed(futures):
+            # Results include the aligned sequences and count of alignments per block
             results, aligned_count = future.result() 
+            # Total aligned reads are accumulated from each block processed
             total_aligned += aligned_count
+            # Append each result from the block to the output file
+            # Each result is a formatted string representing a line in a SAM file
             for result in results:
                 output_file.write(result + "\n")
 
-    output_file.close()
+    output_file.close() # Close the output file after writing all results.
     
     alignment_duration = time.time() - start_time_alignment
 
@@ -195,7 +213,6 @@ def main():
     mem_usage_after = memory_usage(max_usage=True)
     peak_memory_usage = mem_usage_after - mem_usage_before
     print(f"Peak Memory Usage: {peak_memory_usage:.2f} MiB")
-    print(f"Total Reads: {total_reads}, Reads Aligned: {total_aligned}")
 
 if __name__ == "__main__":
-    main() # if python script is executed directly
+    main() # Start the main function if this script is run as the main program.
