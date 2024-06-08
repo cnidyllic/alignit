@@ -10,7 +10,7 @@ Clone the repository:
 ```
 git clone https://github.com/cnidyllic/alignit
 ```
-Change into directory and install tool so it can be used from command line:
+Change into directory and install tool(s) so it can be used from command line:
 ```
 cd alignit
 ```
@@ -22,6 +22,10 @@ Note: if you do not have root access, you can run the commands above with additi
 python setup.py install –-user
 ```
 If the install was successful, typing ```python align-it/align_it.py --help``` should show a useful message. 
+
+```
+pip install memory_profiler
+```
 
 # Basic usage: 
 The basic usage of ```align_it``` is:
@@ -50,8 +54,6 @@ The required inputs to ```align_it``` is a FASTQ file containing the reads and t
 -n, --num-threads, type=int, default=4, "Number of threads to use for processing, or number of logical cores."
 
 # Benchmarking:
-Install necessary tools first:
-```pip install memory_profiler```
 
 To run ```align_it``` on benchmark data with full reference and reads, under default settings:
 ```
